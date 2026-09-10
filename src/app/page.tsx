@@ -212,9 +212,7 @@ export default function Home() {
                 loading="eager"
               />
             </span>
-            <span>WEB / OBJECT</span>
           </Link>
-          <span className="product-tag">アクリルブロック</span>
         </header>
         <AcrylicPreview src={texture} />
         {busy === "capture" && (
@@ -247,18 +245,13 @@ export default function Home() {
           }}
         >
           <div className="step-content" ref={panelRef}>
-            <h1 ref={headingRef} tabIndex={-1}>
-              {step === 1
-                ? "サイトを、飾ろう。"
-                : step === 2
-                  ? "好きな仕上がりに。"
-                  : "あなただけのグッズに。"}
-            </h1>
+            {step !== 1 && (
+              <h1 ref={headingRef} tabIndex={-1}>
+                {step === 2 ? "好きな仕上がりに。" : "あなただけのグッズに。"}
+              </h1>
+            )}
             {step === 1 && (
               <>
-                <p className="step-description">
-                  URLを入れるだけ。3ステップでグッズに。
-                </p>
                 <label htmlFor="site-url">公開したサイトのURL</label>
                 <input
                   id="site-url"

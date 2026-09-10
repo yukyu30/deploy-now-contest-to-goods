@@ -6,6 +6,7 @@ import sharp from "sharp";
 import { MAX_CAPTURE_BYTES } from "./captures";
 import { normalizeSiteUrl } from "./validation";
 import { fetchPublicResource } from "./safe-fetch";
+import { ScreenshotError, type ScreenshotStage } from "./screenshot-error";
 let active = 0;
 export async function screenshotSite(
   input: string,
@@ -20,6 +21,7 @@ export async function screenshotSite(
   let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let stage: ScreenshotStage = "prepare";
   try {
     const isLambda =
       process.env.CHROMIUM_RUNTIME === "lambda" ||
@@ -55,6 +57,7 @@ export async function screenshotSite(
       "FONTCONFIG_PATH",
     ])
       if (process.env[key]) env[key] = process.env[key]!;
+    stage = "launch";
     browser = await chromium.launch({
       headless: true,
       chromiumSandbox: !isLambda,
@@ -73,6 +76,7 @@ export async function screenshotSite(
       controller.abort();
       void browser?.close();
     }, 35000);
+    stage = "context";
     const context = await browser.newContext({
       viewport: { width: 1440, height: 1080 },
       deviceScaleFactor: 2,
@@ -131,6 +135,7 @@ export async function screenshotSite(
     context.on("page", (popup) => {
       if (popup !== page) void popup.close();
     });
+    stage = "navigate";
     const response = await page.goto(url, {
       waitUntil: "load",
       timeout: 25000,
@@ -150,6 +155,7 @@ export async function screenshotSite(
     normalizeSiteUrl(page.url());
     if (navigationFailure)
       throw new Error("対象外のサイトへの移動が検出されました。");
+    stage = "capture";
     let png = await page.screenshot({
       type: "png",
       fullPage: false,
@@ -165,17 +171,7 @@ export async function screenshotSite(
       throw new Error("撮影画像が大きすぎます。");
     return { png, format, url: finalUrl, width: 2880, height: 2160 };
   } catch (error) {
-    if (
-      error instanceof Error &&
-      /Executable doesn't exist/.test(error.message)
-    )
-      throw new Error(
-        "撮影用ブラウザが未インストールです。管理者は npm run browser:install を実行してください。",
-      );
-    throw new Error(
-      "サイトを撮影できませんでした。公開URLを確認してください。ログインが必要なページや対象外のサイトへの転送には対応していません。",
-      { cause: error },
-    );
+    throw new ScreenshotError(stage, error);
   } finally {
     if (timer) clearTimeout(timer);
     controller.abort();

@@ -2,6 +2,7 @@ import { checkRequest, readJson, reply } from "@/lib/request";
 import { normalizeSiteUrl } from "@/lib/validation";
 import { screenshotSite } from "@/lib/screenshot";
 import { signCapture } from "@/lib/captures";
+import { ScreenshotError } from "@/lib/screenshot-error";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 export async function POST(request: Request) {
@@ -33,8 +34,17 @@ export async function POST(request: Request) {
       url: shot.url,
     });
   } catch (error) {
+    const code =
+      error instanceof ScreenshotError ? error.code : "SCREENSHOT_FAILED";
+    console.error("Screenshot failed", {
+      code,
+      platform: process.platform,
+      arch: process.arch,
+      node: process.versions.node,
+    });
     return reply(
       {
+        code,
         error:
           error instanceof Error ? error.message : "撮影できませんでした。",
       },
