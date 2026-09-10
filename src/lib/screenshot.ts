@@ -8,7 +8,6 @@ import { normalizeSiteUrl } from "./validation";
 import { fetchPublicResource } from "./safe-fetch";
 import { ScreenshotError, type ScreenshotStage } from "./screenshot-error";
 import { prepareLambdaLibraries } from "./lambda-chromium";
-import { captureFrame } from "./capture-frame";
 let active = 0;
 export async function screenshotSite(
   input: string,
@@ -82,7 +81,7 @@ export async function screenshotSite(
     stage = "context";
     const context = await browser.newContext({
       viewport: { width: 1440, height: 1080 },
-      deviceScaleFactor: 2,
+      deviceScaleFactor: 1,
       locale: "ja-JP",
       colorScheme: "light",
       serviceWorkers: "block",
@@ -159,14 +158,20 @@ export async function screenshotSite(
     if (navigationFailure)
       throw new Error("対象外のサイトへの移動が検出されました。");
     stage = "capture";
-    let png = await captureFrame(page);
+    let png = await page.screenshot({
+      type: "jpeg",
+      quality: 90,
+      fullPage: false,
+      animations: "disabled",
+      timeout: 10000,
+    });
     const format = "jpeg" as const;
     if (png.length > MAX_CAPTURE_BYTES) {
       png = await sharp(png).jpeg({ quality: 80 }).toBuffer();
     }
     if (png.length > MAX_CAPTURE_BYTES)
       throw new Error("撮影画像が大きすぎます。");
-    return { png, format, url: finalUrl, width: 2880, height: 2160 };
+    return { png, format, url: finalUrl, width: 1440, height: 1080 };
   } catch (error) {
     throw new ScreenshotError(stage, error);
   } finally {

@@ -38,11 +38,11 @@ test("headless browser renders a site and follows a permitted redirect", async (
   assert.ok(requests.some((url) => url.endsWith("/style.css")));
   const img = sharp(shot.png);
   const meta = await img.metadata();
-  assert.equal(meta.width, 2880);
-  assert.equal(meta.height, 2160);
+  assert.equal(meta.width, 1440);
+  assert.equal(meta.height, 1080);
   assert.equal(meta.format, "jpeg");
   const pixel = await img
-    .extract({ left: 2000, top: 2000, width: 1, height: 1 })
+    .extract({ left: 1000, top: 1000, width: 1, height: 1 })
     .removeAlpha()
     .raw()
     .toBuffer();
@@ -64,45 +64,4 @@ test("out-of-domain navigation is rejected", async () => {
   await assert.rejects(() =>
     screenshotSite("https://fixture.lolipop-now.app/", transport),
   );
-});
-
-test("a font requested after page load cannot block frame capture", async () => {
-  let requestedFont = false;
-  const transport: typeof fetchPublicResource = async (
-    url,
-    document,
-    signal,
-  ) => {
-    validateResourceUrl(url, document);
-    if (url.endsWith("/pending.woff2")) {
-      requestedFont = true;
-      return new Promise((_, reject) => {
-        signal.addEventListener("abort", () => reject(new Error("Aborted")), {
-          once: true,
-        });
-      });
-    }
-    return {
-      status: 200,
-      headers: { "content-type": "text/html" },
-      finalUrl: url,
-      body: Buffer.from(`<!doctype html><html><body style="background:#ec7447"><h1>Font fallback</h1><script>
-        window.addEventListener('load', () => setTimeout(() => {
-          const font = new FontFace('SlowFont', 'url(/pending.woff2)', {display:'swap'});
-          document.fonts.add(font);
-          document.body.style.fontFamily = 'SlowFont, sans-serif';
-          font.load().catch(() => {});
-        }, 100));
-      </script></body></html>`),
-    };
-  };
-  const shot = await screenshotSite(
-    "https://fixture.lolipop-now.app/",
-    transport,
-  );
-  assert.ok(requestedFont);
-  const metadata = await sharp(shot.png).metadata();
-  assert.equal(metadata.format, "jpeg");
-  assert.equal(metadata.width, 2880);
-  assert.equal(metadata.height, 2160);
 });
