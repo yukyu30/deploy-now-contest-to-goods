@@ -140,7 +140,7 @@ export async function screenshotSite(
     stage = "navigate";
     const response = await page.goto(url, {
       waitUntil: "load",
-      timeout: 25000,
+      timeout: 15000,
     });
     if (!response?.ok() || navigationFailure)
       throw new Error(
@@ -159,15 +159,16 @@ export async function screenshotSite(
       throw new Error("対象外のサイトへの移動が検出されました。");
     stage = "capture";
     let png = await page.screenshot({
-      type: "png",
+      // Encode JPEG directly: compressing a large PNG is costly on Lambda CPUs.
+      type: "jpeg",
+      quality: 90,
       fullPage: false,
       animations: "disabled",
-      timeout: 5000,
+      timeout: 10000,
     });
-    let format: "png" | "jpeg" = "png";
+    const format = "jpeg" as const;
     if (png.length > MAX_CAPTURE_BYTES) {
-      png = await sharp(png).jpeg({ quality: 90 }).toBuffer();
-      format = "jpeg";
+      png = await sharp(png).jpeg({ quality: 80 }).toBuffer();
     }
     if (png.length > MAX_CAPTURE_BYTES)
       throw new Error("撮影画像が大きすぎます。");
