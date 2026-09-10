@@ -64,13 +64,15 @@ lolipop deploy --name web-object --framework next
 
 デプロイ nowはローカルの `.env` をビルド・公開時に参照しません。ダッシュボードのプロジェクト詳細「環境変数」で設定してください。
 
-| 名前               | 値                                                                           |
-| ------------------ | ---------------------------------------------------------------------------- |
-| `SUZURI_API_KEY`   | 所有者のSUZURI APIキー（read / write）                                       |
-| `APP_ORIGIN`       | 公開URLのorigin。例 `https://web-object.lolipop-now.app`。末尾スラッシュなし |
-| `CHROMIUM_RUNTIME` | `lambda`（AWS_LAMBDA_FUNCTION_NAMEが提供される環境では自動検出）             |
+| 名前               | 値                                                                                      |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| `SUZURI_API_KEY`   | 所有者のSUZURI APIキー（read / write）                                                  |
+| `APP_ORIGIN`       | Fetch Metadata非対応クライアント用の公開origin。例 `https://web-object.lolipop-now.app` |
+| `CHROMIUM_RUNTIME` | `lambda`（AWS_LAMBDA_FUNCTION_NAMEが提供される環境では自動検出）                        |
 
 APIキーはサーバーだけで使用します。`NEXT_PUBLIC_` プレフィックスは付けません。SUZURIの認証情報をフロントエンドへ配信しません。
+
+ブラウザーからのAPI操作は `Sec-Fetch-Site: same-origin` と有効な `Origin` を確認します。これにより、本番の `APP_ORIGIN` を引き継いだプレビューでも、その画面からの操作を許可します。別サイト・別サブドメインからの操作は拒否し、このヘッダーがないクライアントは `APP_ORIGIN`（未設定時はリクエストURLのorigin）との完全一致が必要です。転送ヘッダーや `*.lolipop-now.app` の一括許可には依存しません。
 
 ### Lambdaの条件と検証範囲
 
