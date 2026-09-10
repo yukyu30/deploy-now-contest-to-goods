@@ -28,3 +28,21 @@ test("public diagnostics do not include raw paths, URLs or credentials", () => {
   assert.doesNotMatch(error.message + error.code, /secret|example.com|private/);
   assert.equal(error.cause, cause);
 });
+
+test("diagnostics distinguish completed font loading without exposing call logs", () => {
+  const error = new ScreenshotError(
+    "capture",
+    new Error(
+      "Timeout 10000ms exceeded https://example.com/?secret=private\n taking page screenshot\n waiting for fonts to load...\n fonts loaded",
+    ),
+  );
+  assert.deepEqual(error.progress, [
+    "capture_requested",
+    "fonts_wait_started",
+    "fonts_ready",
+  ]);
+  assert.doesNotMatch(
+    JSON.stringify(error.progress),
+    /secret|private|example.com/,
+  );
+});

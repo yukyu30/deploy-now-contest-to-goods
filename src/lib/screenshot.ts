@@ -8,6 +8,7 @@ import { normalizeSiteUrl } from "./validation";
 import { fetchPublicResource } from "./safe-fetch";
 import { ScreenshotError, type ScreenshotStage } from "./screenshot-error";
 import { prepareLambdaLibraries } from "./lambda-chromium";
+import { closeBrowser } from "./close-browser";
 let active = 0;
 export async function screenshotSite(
   input: string,
@@ -76,7 +77,7 @@ export async function screenshotSite(
     });
     timer = setTimeout(() => {
       controller.abort();
-      void browser?.close();
+      void closeBrowser(browser);
     }, 35000);
     stage = "context";
     const context = await browser.newContext({
@@ -177,7 +178,9 @@ export async function screenshotSite(
   } finally {
     if (timer) clearTimeout(timer);
     controller.abort();
-    await browser?.close().catch(() => {});
-    active--;
+    // A closing browser still consumes resources; retain its concurrency slot.
+    await closeBrowser(browser, 1000, () => {
+      active--;
+    });
   }
 }

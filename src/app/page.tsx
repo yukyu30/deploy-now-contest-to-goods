@@ -368,12 +368,10 @@ export default function Home() {
                     onChange={(e) => setConfirmed(e.target.checked)}
                   />
                   <span>
-                    画像をグッズにする権利を持ち、SUZURIでの公開に同意します。
+                    画像をグッズにする権利を持ち、このサービスの公開先SUZURIアカウントで商品が公開されることに同意します。
                   </span>
                 </label>
-                <p className="hint">
-                  連携アカウントで公開。注文・支払いはSUZURIで。
-                </p>
+                <p className="hint">注文・支払いはSUZURIで行います。</p>
               </>
             )}
             <div aria-live="polite">

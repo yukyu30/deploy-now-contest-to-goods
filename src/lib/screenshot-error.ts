@@ -3,6 +3,7 @@ export type ScreenshotStage =
 
 export class ScreenshotError extends Error {
   readonly code: string;
+  readonly progress: string[];
   constructor(stage: ScreenshotStage, cause: unknown) {
     const messages = {
       prepare:
@@ -20,6 +21,14 @@ export class ScreenshotError extends Error {
     this.name = "ScreenshotError";
     // Expose only fixed diagnostic codes, never raw browser errors or target URLs.
     const message = cause instanceof Error ? cause.message : "";
+    this.progress = [
+      ["taking page screenshot", "capture_requested"],
+      ["disabled all CSS animations", "animations_disabled"],
+      ["waiting for fonts to load", "fonts_wait_started"],
+      ["fonts loaded", "fonts_ready"],
+    ]
+      .filter(([text]) => message.includes(text))
+      .map(([, code]) => code);
     const reason =
       /error while loading shared libraries|cannot open shared object/i.test(
         message,
