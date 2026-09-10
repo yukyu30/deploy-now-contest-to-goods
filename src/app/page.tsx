@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import NextImage from "next/image";
 import dynamic from "next/dynamic";
 import { siteQr, QR_SIZE, QR_OFFSET } from "@/lib/qr";
 const AcrylicPreview = dynamic(() => import("@/components/acrylic-preview"), {
@@ -194,7 +195,16 @@ export default function Home() {
       >
         <header className="studio-header">
           <Link href="/" className="brand">
-            w/o <span>WEB / OBJECT</span>
+            <span className="brand-mark">
+              <NextImage
+                src="/brand/wo-logo.png"
+                alt="w/o"
+                width={108}
+                height={54}
+                loading="eager"
+              />
+            </span>
+            <span>WEB / OBJECT</span>
           </Link>
           <span className="product-tag">アクリルブロック</span>
         </header>
