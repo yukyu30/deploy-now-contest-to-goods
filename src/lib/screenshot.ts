@@ -7,6 +7,7 @@ import { MAX_CAPTURE_BYTES } from "./captures";
 import { normalizeSiteUrl } from "./validation";
 import { fetchPublicResource } from "./safe-fetch";
 import { ScreenshotError, type ScreenshotStage } from "./screenshot-error";
+import { prepareLambdaLibraries } from "./lambda-chromium";
 let active = 0;
 export async function screenshotSite(
   input: string,
@@ -30,6 +31,7 @@ export async function screenshotSite(
     let lambdaArgs: string[] = [];
     if (isLambda && !executablePath) {
       const { default: lambdaChromium } = await import("@sparticuz/chromium");
+      await prepareLambdaLibraries();
       executablePath = await lambdaChromium.executablePath();
       await copyFile(
         path.join(process.cwd(), "assets/fonts/NotoSansJP.ttf"),
