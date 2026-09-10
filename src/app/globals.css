@@ -74,12 +74,27 @@ a {
   justify-content: space-between;
 }
 .brand {
-  font-size: 23px;
   font-weight: 800;
-  letter-spacing: -2px;
   display: flex;
   align-items: center;
   gap: 9px;
+}
+.brand-mark {
+  position: relative;
+  width: 60px;
+  height: 28px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.brand-mark img {
+  /* Frame the transparent source margins without altering the generated asset. */
+  position: absolute;
+  width: 108px;
+  height: 54px;
+  max-width: none;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 .brand span {
   font-size: 10px;
