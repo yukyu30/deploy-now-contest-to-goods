@@ -139,7 +139,7 @@ export async function POST(request: Request) {
       {
         uncertain: creationStarted,
         error: creationStarted
-          ? "作成結果を確認できませんでした。重複を避けるため、再作成の前にSUZURIの自分の商品を確認してください。"
+          ? "作成結果を確認できませんでした。重複を避けるため、再作成の前に公開先ショップの商品を確認してください。"
           : "SUZURIに接続できませんでした。時間をおいてお試しください。",
       },
       502,

@@ -136,6 +136,7 @@ export default function Home() {
     setBusy("create");
     setError("");
     let knownFailure = false;
+    let responseStatus: number | undefined;
     try {
       const response = await fetch("/api/products", {
         method: "POST",
@@ -153,6 +154,7 @@ export default function Home() {
         }),
         signal: AbortSignal.timeout(60000),
       });
+      responseStatus = response.status;
       const data = await readApiResponse<{
         productUrl: string;
         message: string;
@@ -182,7 +184,9 @@ export default function Home() {
       if (!knownFailure || !(e instanceof Error)) {
         setUncertain(true);
         setError(
-          "通信が途切れました。再作成の前にSUZURIで商品の有無を確認してください。",
+          responseStatus
+            ? `商品作成の応答を確認できませんでした（HTTP ${responseStatus}）。再作成の前に公開先ショップで商品の有無を確認してください。`
+            : "通信が途切れました。再作成の前に公開先ショップで商品の有無を確認してください。",
         );
       } else setError(e.message);
     } finally {
@@ -382,8 +386,12 @@ export default function Home() {
               )}
               {uncertain && (
                 <div className="notice">
-                  <a href="https://suzuri.jp/" target="_blank" rel="noreferrer">
-                    SUZURIで商品を確認 ↗
+                  <a
+                    href="https://suzuri.jp/yukyu-for-api"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    公開先ショップで商品を確認 ↗
                   </a>
                   <button
                     type="button"
