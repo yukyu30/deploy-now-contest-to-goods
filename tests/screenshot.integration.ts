@@ -38,14 +38,18 @@ test("headless browser renders a site and follows a permitted redirect", async (
   assert.ok(requests.some((url) => url.endsWith("/style.css")));
   const img = sharp(shot.png);
   const meta = await img.metadata();
-  assert.equal(meta.width, 2880);
-  assert.equal(meta.height, 2160);
+  assert.equal(meta.width, 1440);
+  assert.equal(meta.height, 1080);
+  assert.equal(meta.format, "jpeg");
   const pixel = await img
-    .extract({ left: 2000, top: 2000, width: 1, height: 1 })
+    .extract({ left: 1000, top: 1000, width: 1, height: 1 })
     .removeAlpha()
     .raw()
     .toBuffer();
-  assert.deepEqual([...pixel], [236, 116, 71]);
+  // JPEG can shift a solid color by a few levels through chroma conversion.
+  [236, 116, 71].forEach((expected, index) =>
+    assert.ok(Math.abs(pixel[index] - expected) <= 3),
+  );
 });
 test("out-of-domain navigation is rejected", async () => {
   const transport: typeof fetchPublicResource = async (url, document) => {

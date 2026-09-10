@@ -4,6 +4,7 @@ import Link from "next/link";
 import NextImage from "next/image";
 import dynamic from "next/dynamic";
 import { siteQr, QR_SIZE, QR_OFFSET } from "@/lib/qr";
+import { readApiResponse } from "@/lib/api-response";
 const AcrylicPreview = dynamic(() => import("@/components/acrylic-preview"), {
   ssr: false,
   loading: () => <p className="hint">3Dプレビューを準備中…</p>,
@@ -98,7 +99,9 @@ export default function Home() {
         body: JSON.stringify({ url: site }),
         signal: AbortSignal.timeout(60000),
       });
-      const data = await response.json();
+      const data = await readApiResponse<Capture & { error?: string }>(
+        response,
+      );
       if (!response.ok) throw new Error(data.error || "撮影できませんでした。");
       setCapture(data);
       setStep(2);
@@ -150,7 +153,12 @@ export default function Home() {
         }),
         signal: AbortSignal.timeout(60000),
       });
-      const data = await response.json();
+      const data = await readApiResponse<{
+        productUrl: string;
+        message: string;
+        error?: string;
+        uncertain?: boolean;
+      }>(response);
       if (!response.ok) {
         knownFailure = true;
         setUncertain(!!data.uncertain);
@@ -204,9 +212,7 @@ export default function Home() {
                 loading="eager"
               />
             </span>
-            <span>WEB / OBJECT</span>
           </Link>
-          <span className="product-tag">アクリルブロック</span>
         </header>
         <AcrylicPreview src={texture} />
         {busy === "capture" && (
@@ -239,18 +245,13 @@ export default function Home() {
           }}
         >
           <div className="step-content" ref={panelRef}>
-            <h1 ref={headingRef} tabIndex={-1}>
-              {step === 1
-                ? "サイトを、飾ろう。"
-                : step === 2
-                  ? "好きな仕上がりに。"
-                  : "あなただけのグッズに。"}
-            </h1>
+            {step !== 1 && (
+              <h1 ref={headingRef} tabIndex={-1}>
+                {step === 2 ? "好きな仕上がりに。" : "あなただけのグッズに。"}
+              </h1>
+            )}
             {step === 1 && (
               <>
-                <p className="step-description">
-                  URLを入れるだけ。3ステップでグッズに。
-                </p>
                 <label htmlFor="site-url">公開したサイトのURL</label>
                 <input
                   id="site-url"
@@ -367,12 +368,10 @@ export default function Home() {
                     onChange={(e) => setConfirmed(e.target.checked)}
                   />
                   <span>
-                    画像をグッズにする権利を持ち、SUZURIでの公開に同意します。
+                    画像をグッズにする権利を持ち、このサービスの公開先SUZURIアカウントで商品が公開されることに同意します。
                   </span>
                 </label>
-                <p className="hint">
-                  連携アカウントで公開。注文・支払いはSUZURIで。
-                </p>
+                <p className="hint">注文・支払いはSUZURIで行います。</p>
               </>
             )}
             <div aria-live="polite">

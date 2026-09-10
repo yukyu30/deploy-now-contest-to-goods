@@ -2,9 +2,11 @@ import { checkRequest, readJson, reply } from "@/lib/request";
 import { normalizeSiteUrl } from "@/lib/validation";
 import { screenshotSite } from "@/lib/screenshot";
 import { signCapture } from "@/lib/captures";
+import { ScreenshotError } from "@/lib/screenshot-error";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 export async function POST(request: Request) {
+  const started = Date.now();
   const invalid = checkRequest(request);
   if (invalid) return invalid;
   let url: string;
@@ -33,8 +35,25 @@ export async function POST(request: Request) {
       url: shot.url,
     });
   } catch (error) {
+    const code =
+      error instanceof ScreenshotError ? error.code : "SCREENSHOT_FAILED";
+    const diagnostics = {
+      elapsedMs: Date.now() - started,
+      progress: error instanceof ScreenshotError ? error.progress : [],
+      memoryLimitMb:
+        Number(process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE) || null,
+    };
+    console.error("Screenshot failed", {
+      code,
+      platform: process.platform,
+      arch: process.arch,
+      node: process.versions.node,
+      ...diagnostics,
+    });
     return reply(
       {
+        code,
+        diagnostics,
         error:
           error instanceof Error ? error.message : "撮影できませんでした。",
       },

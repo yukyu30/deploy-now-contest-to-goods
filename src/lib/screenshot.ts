@@ -6,6 +6,9 @@ import sharp from "sharp";
 import { MAX_CAPTURE_BYTES } from "./captures";
 import { normalizeSiteUrl } from "./validation";
 import { fetchPublicResource } from "./safe-fetch";
+import { ScreenshotError, type ScreenshotStage } from "./screenshot-error";
+import { prepareLambdaLibraries } from "./lambda-chromium";
+import { closeBrowser } from "./close-browser";
 let active = 0;
 export async function screenshotSite(
   input: string,
@@ -20,6 +23,7 @@ export async function screenshotSite(
   let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let stage: ScreenshotStage = "prepare";
   try {
     const isLambda =
       process.env.CHROMIUM_RUNTIME === "lambda" ||
@@ -28,6 +32,7 @@ export async function screenshotSite(
     let lambdaArgs: string[] = [];
     if (isLambda && !executablePath) {
       const { default: lambdaChromium } = await import("@sparticuz/chromium");
+      await prepareLambdaLibraries();
       executablePath = await lambdaChromium.executablePath();
       await copyFile(
         path.join(process.cwd(), "assets/fonts/NotoSansJP.ttf"),
@@ -55,6 +60,7 @@ export async function screenshotSite(
       "FONTCONFIG_PATH",
     ])
       if (process.env[key]) env[key] = process.env[key]!;
+    stage = "launch";
     browser = await chromium.launch({
       headless: true,
       chromiumSandbox: !isLambda,
@@ -71,11 +77,12 @@ export async function screenshotSite(
     });
     timer = setTimeout(() => {
       controller.abort();
-      void browser?.close();
+      void closeBrowser(browser);
     }, 35000);
+    stage = "context";
     const context = await browser.newContext({
       viewport: { width: 1440, height: 1080 },
-      deviceScaleFactor: 2,
+      deviceScaleFactor: 1,
       locale: "ja-JP",
       colorScheme: "light",
       serviceWorkers: "block",
@@ -131,9 +138,10 @@ export async function screenshotSite(
     context.on("page", (popup) => {
       if (popup !== page) void popup.close();
     });
+    stage = "navigate";
     const response = await page.goto(url, {
       waitUntil: "load",
-      timeout: 25000,
+      timeout: 15000,
     });
     if (!response?.ok() || navigationFailure)
       throw new Error(
@@ -150,36 +158,29 @@ export async function screenshotSite(
     normalizeSiteUrl(page.url());
     if (navigationFailure)
       throw new Error("対象外のサイトへの移動が検出されました。");
+    stage = "capture";
     let png = await page.screenshot({
-      type: "png",
+      type: "jpeg",
+      quality: 90,
       fullPage: false,
       animations: "disabled",
-      timeout: 5000,
+      timeout: 10000,
     });
-    let format: "png" | "jpeg" = "png";
+    const format = "jpeg" as const;
     if (png.length > MAX_CAPTURE_BYTES) {
-      png = await sharp(png).jpeg({ quality: 90 }).toBuffer();
-      format = "jpeg";
+      png = await sharp(png).jpeg({ quality: 80 }).toBuffer();
     }
     if (png.length > MAX_CAPTURE_BYTES)
       throw new Error("撮影画像が大きすぎます。");
-    return { png, format, url: finalUrl, width: 2880, height: 2160 };
+    return { png, format, url: finalUrl, width: 1440, height: 1080 };
   } catch (error) {
-    if (
-      error instanceof Error &&
-      /Executable doesn't exist/.test(error.message)
-    )
-      throw new Error(
-        "撮影用ブラウザが未インストールです。管理者は npm run browser:install を実行してください。",
-      );
-    throw new Error(
-      "サイトを撮影できませんでした。公開URLを確認してください。ログインが必要なページや対象外のサイトへの転送には対応していません。",
-      { cause: error },
-    );
+    throw new ScreenshotError(stage, error);
   } finally {
     if (timer) clearTimeout(timer);
     controller.abort();
-    await browser?.close().catch(() => {});
-    active--;
+    // A closing browser still consumes resources; retain its concurrency slot.
+    await closeBrowser(browser, 1000, () => {
+      active--;
+    });
   }
 }
