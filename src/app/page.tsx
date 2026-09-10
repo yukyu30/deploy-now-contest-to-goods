@@ -4,6 +4,7 @@ import Link from "next/link";
 import NextImage from "next/image";
 import dynamic from "next/dynamic";
 import { siteQr, QR_SIZE, QR_OFFSET } from "@/lib/qr";
+import { readApiResponse } from "@/lib/api-response";
 const AcrylicPreview = dynamic(() => import("@/components/acrylic-preview"), {
   ssr: false,
   loading: () => <p className="hint">3Dプレビューを準備中…</p>,
@@ -98,7 +99,9 @@ export default function Home() {
         body: JSON.stringify({ url: site }),
         signal: AbortSignal.timeout(60000),
       });
-      const data = await response.json();
+      const data = await readApiResponse<Capture & { error?: string }>(
+        response,
+      );
       if (!response.ok) throw new Error(data.error || "撮影できませんでした。");
       setCapture(data);
       setStep(2);
@@ -150,7 +153,12 @@ export default function Home() {
         }),
         signal: AbortSignal.timeout(60000),
       });
-      const data = await response.json();
+      const data = await readApiResponse<{
+        productUrl: string;
+        message: string;
+        error?: string;
+        uncertain?: boolean;
+      }>(response);
       if (!response.ok) {
         knownFailure = true;
         setUncertain(!!data.uncertain);
