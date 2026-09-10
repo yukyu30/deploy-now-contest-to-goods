@@ -65,3 +65,44 @@ test("out-of-domain navigation is rejected", async () => {
     screenshotSite("https://fixture.lolipop-now.app/", transport),
   );
 });
+
+test("a font requested after page load cannot block frame capture", async () => {
+  let requestedFont = false;
+  const transport: typeof fetchPublicResource = async (
+    url,
+    document,
+    signal,
+  ) => {
+    validateResourceUrl(url, document);
+    if (url.endsWith("/pending.woff2")) {
+      requestedFont = true;
+      return new Promise((_, reject) => {
+        signal.addEventListener("abort", () => reject(new Error("Aborted")), {
+          once: true,
+        });
+      });
+    }
+    return {
+      status: 200,
+      headers: { "content-type": "text/html" },
+      finalUrl: url,
+      body: Buffer.from(`<!doctype html><html><body style="background:#ec7447"><h1>Font fallback</h1><script>
+        window.addEventListener('load', () => setTimeout(() => {
+          const font = new FontFace('SlowFont', 'url(/pending.woff2)', {display:'swap'});
+          document.fonts.add(font);
+          document.body.style.fontFamily = 'SlowFont, sans-serif';
+          font.load().catch(() => {});
+        }, 100));
+      </script></body></html>`),
+    };
+  };
+  const shot = await screenshotSite(
+    "https://fixture.lolipop-now.app/",
+    transport,
+  );
+  assert.ok(requestedFont);
+  const metadata = await sharp(shot.png).metadata();
+  assert.equal(metadata.format, "jpeg");
+  assert.equal(metadata.width, 2880);
+  assert.equal(metadata.height, 2160);
+});

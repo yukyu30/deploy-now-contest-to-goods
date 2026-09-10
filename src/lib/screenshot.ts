@@ -8,6 +8,7 @@ import { normalizeSiteUrl } from "./validation";
 import { fetchPublicResource } from "./safe-fetch";
 import { ScreenshotError, type ScreenshotStage } from "./screenshot-error";
 import { prepareLambdaLibraries } from "./lambda-chromium";
+import { captureFrame } from "./capture-frame";
 let active = 0;
 export async function screenshotSite(
   input: string,
@@ -158,14 +159,7 @@ export async function screenshotSite(
     if (navigationFailure)
       throw new Error("対象外のサイトへの移動が検出されました。");
     stage = "capture";
-    let png = await page.screenshot({
-      // Encode JPEG directly: compressing a large PNG is costly on Lambda CPUs.
-      type: "jpeg",
-      quality: 90,
-      fullPage: false,
-      animations: "disabled",
-      timeout: 10000,
-    });
+    let png = await captureFrame(page);
     const format = "jpeg" as const;
     if (png.length > MAX_CAPTURE_BYTES) {
       png = await sharp(png).jpeg({ quality: 80 }).toBuffer();
