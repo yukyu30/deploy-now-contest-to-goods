@@ -274,6 +274,32 @@ export default function Home() {
                   }}
                 />
                 <p className="hint">*.lolipop-now.app の公開サイトに対応</p>
+                <a
+                  className="contest-card"
+                  href="https://lolipop.jp/deploy-now/contest/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <NextImage
+                    src="/brand/deploy-now-contest.png"
+                    alt="デプロイナウ コンテスト"
+                    width={1400}
+                    height={882}
+                    sizes="(max-width: 400px) 112px, 160px"
+                  />
+                  <span className="contest-copy">
+                    <strong>
+                      つくったサイトで、
+                      <br />
+                      コンテストにも挑戦。
+                    </strong>
+                    <span>グランプリ賞金100万円</span>
+                    <span className="contest-link">
+                      応募要項を見る <span aria-hidden="true">↗</span>
+                    </span>
+                    <span className="sr-only">（新しいタブで開きます）</span>
+                  </span>
+                </a>
               </>
             )}
             {step === 2 && (
