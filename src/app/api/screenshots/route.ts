@@ -1,7 +1,7 @@
 import { checkRequest, readJson, reply } from "@/lib/request";
 import { normalizeSiteUrl } from "@/lib/validation";
 import { screenshotSite } from "@/lib/screenshot";
-import { signCapture } from "@/lib/captures";
+import { compactCapture } from "@/lib/compact-capture";
 import { ScreenshotError } from "@/lib/screenshot-error";
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -26,14 +26,7 @@ export async function POST(request: Request) {
     return reply({ error: "サーバーのSUZURI APIキーが未設定です。" }, 503);
   try {
     const shot = await screenshotSite(url);
-    const receipt = signCapture(shot.png, shot.url);
-    return reply({
-      receipt,
-      src: `data:image/${shot.format};base64,${shot.png.toString("base64")}`,
-      width: shot.width,
-      height: shot.height,
-      url: shot.url,
-    });
+    return reply(await compactCapture(shot.png, shot.url));
   } catch (error) {
     const code =
       error instanceof ScreenshotError ? error.code : "SCREENSHOT_FAILED";
